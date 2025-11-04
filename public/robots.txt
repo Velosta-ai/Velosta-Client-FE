@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://velosta.com
+
+# Sitemaps
+Sitemap: https://velosta.com/sitemap.xml
