@@ -19,6 +19,7 @@ interface AuthFormProps {
 
 export function AuthForm({ type }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -54,22 +55,37 @@ export function AuthForm({ type }: AuthFormProps) {
       toast.error("Password must be at least 8 characters");
       return false;
     }
-    if (!/[A-Z]/.test(password))
-      toast.error("Password must contain an uppercase letter");
-    if (!/[a-z]/.test(password))
-      toast.error("Password must contain a lowercase letter");
-    if (!/[0-9]/.test(password)) toast.error("Password must contain a number");
-    if (!/[\W_]/.test(password))
-      toast.error("Password must contain a special character");
 
-    if (type === "signup" && password !== confirmPassword) {
-      toast.error("Passwords do not match");
+    if (!/[A-Z]/.test(password)) {
+      toast.error("Password must contain an uppercase letter");
       return false;
     }
 
-    if (type === "signup" && !name.trim()) {
-      toast.error("Full name is required");
+    if (!/[a-z]/.test(password)) {
+      toast.error("Password must contain a lowercase letter");
       return false;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      toast.error("Password must contain a number");
+      return false;
+    }
+
+    if (!/[\W_]/.test(password)) {
+      toast.error("Password must contain a special character");
+      return false;
+    }
+
+    if (type === "signup") {
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return false;
+      }
+
+      if (!name || !name.trim()) {
+        toast.error("Full name is required");
+        return false;
+      }
     }
 
     return true;
@@ -77,7 +93,9 @@ export function AuthForm({ type }: AuthFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
     setLoading(true);
 
     try {
@@ -216,20 +234,27 @@ export function AuthForm({ type }: AuthFormProps) {
         </div>
 
         {type === "signup" && (
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             <Label htmlFor="confirmPassword" className="text-sm font-medium">
               Confirm Password
             </Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               placeholder="••••••••"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="h-11 rounded-lg border-gray-200"
+              className="h-11 rounded-lg border-gray-200 pr-10"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 mt-2.5 -translate-y-1/2 text-black"
+            >
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
         )}
 
@@ -282,7 +307,7 @@ export function AuthForm({ type }: AuthFormProps) {
         <p className="text-center text-sm text-gray-600">
           {type === "signin" ? (
             <>
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <a
                 href="/sign-up"
                 className="font-semibold hover:underline"
