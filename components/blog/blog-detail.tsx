@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Share2, Bookmark, Trash2 } from "lucide-react";
+import { Heart, Share2, Bookmark, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -68,11 +68,16 @@ export function BlogDetail({ blog }: BlogDetailProps) {
         url: typeof window !== "undefined" ? window.location.href : "",
       });
     } else {
-      toast.warning("Your browser doesn’t support link sharing.", {
+      toast.warning("Your browser doesn't support link sharing.", {
         position: "bottom-right",
         autoClose: 2500,
       });
     }
+  };
+
+  const handleEdit = () => {
+    // Navigate to editor with blog ID for editing
+    router.push(`/travel-blogs/edit/${blog.id}`);
   };
 
   const handleBlogDeletion = async () => {
@@ -102,7 +107,6 @@ export function BlogDetail({ blog }: BlogDetailProps) {
       });
       setDeleteDialogOpen(false);
 
-      // small delay so toast is visible
       setTimeout(() => {
         router.push("/travel-blogs");
       }, 500);
@@ -118,7 +122,6 @@ export function BlogDetail({ blog }: BlogDetailProps) {
   };
 
   return (
-    // TooltipProvider can be global (preferred). If you already have it in your layout/_app, remove this wrapper.
     <TooltipProvider>
       <article className="w-full relative">
         <ToastContainer theme="light" />
@@ -165,15 +168,7 @@ export function BlogDetail({ blog }: BlogDetailProps) {
 
             <div className="flex flex-col items-start justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
-                {/* <img
-                  src={blog.authorAvatar || authorAvatar.src}
-                  alt={blog.authorName}
-                  className="h-12 w-12 rounded-full object-cover"
-                /> */}
                 <div>
-                  {/* <p className="font-semibold text-foreground">
-                    {blog.authorName}
-                  </p> */}
                   <p className="text-sm text-muted-foreground">
                     {new Date(blog.createdAt).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -207,52 +202,74 @@ export function BlogDetail({ blog }: BlogDetailProps) {
                 </Button>
 
                 {user?.id === blog.authorId && (
-                  // AlertDialog wraps the dialog pieces. Tooltip wraps the trigger (the actual Button DOM node).
-                  <AlertDialog
-                    open={deleteDialogOpen}
-                    onOpenChange={setDeleteDialogOpen}
-                  >
+                  <>
+                    {/* Edit Button */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={loading}
-                          >
-                            <Trash2 className="h-5 w-5" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEdit}
+                          className="gap-1"
+                        >
+                          <Edit className="h-5 w-5" />
+                          Edit
+                        </Button>
                       </TooltipTrigger>
-
                       <TooltipContent side="top">
-                        <p className="text-xs">Only you can delete this blog</p>
+                        <p className="text-xs">Edit your blog</p>
                       </TooltipContent>
                     </Tooltip>
 
-                    <AlertDialogContent className="sm:max-w-md">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. The blog will be
-                          permanently deleted.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={loading}>
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleBlogDeletion}
-                          disabled={loading}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          {loading ? "Deleting..." : "Yes, delete"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    {/* Delete Button */}
+                    <AlertDialog
+                      open={deleteDialogOpen}
+                      onOpenChange={setDeleteDialogOpen}
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={loading}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                        </TooltipTrigger>
+
+                        <TooltipContent side="top">
+                          <p className="text-xs">
+                            Only you can delete this blog
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      <AlertDialogContent className="sm:max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. The blog will be
+                            permanently deleted.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={loading}>
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleBlogDeletion}
+                            disabled={loading}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            {loading ? "Deleting..." : "Yes, delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
                 )}
               </div>
             </div>

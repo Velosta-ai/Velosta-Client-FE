@@ -59,7 +59,6 @@ export function BlogCard({
   const handleReadClick = (e: React.MouseEvent) => {
     setIsLoading(true);
   };
-
   return (
     <>
       {/* Full-screen loader overlay */}
@@ -107,7 +106,7 @@ export function BlogCard({
             />
             <div>
               <p className="text-sm font-semibold text-[var(--color-navy)]">
-                {displayName}
+                {post.author.name || displayName}
               </p>
               <p className="text-xs text-[var(--color-navy)]/60">
                 {new Date(post.createdAt).toLocaleDateString("en-US", {

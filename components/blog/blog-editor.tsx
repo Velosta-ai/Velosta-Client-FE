@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bold,
   Italic,
@@ -31,6 +32,10 @@ import {
   AlignCenter,
   AlignRight,
   Maximize2,
+  Pencil,
+  Minimize2,
+  ArrowLeft,
+  Loader2,
 } from "lucide-react";
 
 type Draft = {
@@ -67,8 +72,13 @@ const TAG_SUGGESTIONS = [
 
 export default function BlogEditor() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Check if we're in edit mode
+  const isEditMode = !!params?.id;
+  const blogId = params?.id as string;
 
   const [draft, setDraft] = useState<Draft>({
     title: "",
@@ -80,13 +90,86 @@ export default function BlogEditor() {
   });
   const [tagInput, setTagInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [currentTip, setCurrentTip] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
 
+  // Load existing blog for editing
   useEffect(() => {
+    if (isEditMode && blogId) {
+      loadBlogForEdit();
+    } else {
+      loadDraft();
+    }
+    setCurrentTip(Math.floor(Math.random() * WRITING_TIPS.length));
+  }, [isEditMode, blogId]);
+
+  async function loadBlogForEdit() {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        toast({
+          title: "Unauthorized",
+          description: "Please log in to edit blogs",
+          variant: "destructive",
+        });
+        router.push("/login");
+        return;
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_URL}/api/travel-blog/edit-blog/${blogId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          toast({
+            title: "Forbidden",
+            description: "You can only edit your own blogs",
+            variant: "destructive",
+          });
+          router.push("/travel-blogs");
+          return;
+        }
+        throw new Error("Failed to load blog");
+      }
+
+      const blog = await res.json();
+      setDraft({
+        title: blog.title,
+        summary: blog.summary || "",
+        content: blog.content,
+        coverImage: blog.coverImage || "",
+        tags: blog.tags || [],
+        authorName: blog.authorName,
+      });
+      setImagePreview(blog.coverImage || "");
+      if (editorRef.current && blog.content) {
+        editorRef.current.innerHTML = blog.content;
+      }
+    } catch (err: any) {
+      console.error("Load blog error:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load blog for editing",
+        variant: "destructive",
+      });
+      router.push("/travel-blogs");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function loadDraft() {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
@@ -98,14 +181,33 @@ export default function BlogEditor() {
         }
       }
     } catch {}
-    setCurrentTip(Math.floor(Math.random() * WRITING_TIPS.length));
-  }, []);
+  }
 
   useEffect(() => {
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      if (!isEditMode && draft.content.trim() !== "") {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      }
     } catch {}
-  }, [draft]);
+  }, [draft, isEditMode]);
+
+  useEffect(() => {
+    if (!preview && editorRef.current) {
+      editorRef.current.innerHTML = draft.content || "";
+    }
+  }, [preview]);
+  useEffect(() => {
+    setDraft((d) => ({
+      ...d,
+      content:
+        d.content
+          ?.replace(/<p><br><\/p>/gi, "")
+          .replace(/<div><br><\/div>/gi, "")
+          .replace(/<p>\s*<\/p>/gi, "")
+          .replace(/<div>\s*<\/div>/gi, "")
+          .trim() || "",
+    }));
+  }, [loading]);
 
   const readingTime = useMemo(() => {
     const div = document.createElement("div");
@@ -114,11 +216,26 @@ export default function BlogEditor() {
     const words = text.split(/\s+/).filter((w) => w.length > 0).length;
     return Math.ceil(words / 200);
   }, [draft.content]);
+  console.log(draft, "hola");
+  // const canSubmit = useMemo(
+  //   () => draft.title.trim().length > 0 && draft.content.trim().length > 0,
+  //   [draft.title, draft.content]
+  // );
+  // const canSubmit = useMemo(() => {
+  //   const cleanContent = draft.content.replace(/<[^>]*>/g, "").trim();
+  //   return draft.title.trim().length > 0 && cleanContent.length > 0;
+  // }, [draft.title, draft.content]);
+  const canSubmit = useMemo(() => {
+    const clean = draft.content
+      .replace(/<br\s*\/?>/gi, "")
+      .replace(/<p>\s*<\/p>/gi, "")
+      .replace(/<div>\s*<\/div>/gi, "")
+      .replace(/&nbsp;/gi, "")
+      .replace(/<[^>]*>/g, "")
+      .trim();
 
-  const canSubmit = useMemo(
-    () => draft.title.trim().length > 0 && draft.content.trim().length > 0,
-    [draft.title, draft.content]
-  );
+    return draft.title.trim().length > 0 && clean.length > 0;
+  }, [draft.title, draft.content]);
 
   const wordCount = useMemo(() => {
     const div = document.createElement("div");
@@ -172,9 +289,25 @@ export default function BlogEditor() {
     updateContent();
   }
 
+  // function updateContent() {
+  //   if (editorRef.current) {
+  //     setDraft((d) => ({ ...d, content: editorRef.current!.innerHTML }));
+  //   }
+  // }
+
   function updateContent() {
     if (editorRef.current) {
-      setDraft((d) => ({ ...d, content: editorRef.current!.innerHTML }));
+      let html = editorRef.current.innerHTML;
+
+      // Remove invisible filler tags and trim
+      html = html
+        .replace(/<p><br><\/p>/gi, "")
+        .replace(/<div><br><\/div>/gi, "")
+        .replace(/<p>\s*<\/p>/gi, "")
+        .replace(/<div>\s*<\/div>/gi, "")
+        .trim();
+
+      setDraft((d) => ({ ...d, content: html }));
     }
   }
 
@@ -202,47 +335,56 @@ export default function BlogEditor() {
     }
   }
 
-  // --------- CREATE BLOG API CALL ---------
   async function submit() {
+    // console.log(canSubmit);
+    // return;
     if (!canSubmit) return;
     setSubmitting(true);
 
     try {
-      // Get JWT token from localStorage or context
-      const token = localStorage.getItem("accessToken"); // adjust based on your auth
+      const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("You must be logged in to publish");
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_URL}/api/travel-blog/create-blog`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(draft),
-        }
-      );
+      const url = isEditMode
+        ? `${process.env.NEXT_PUBLIC_URL}/api/travel-blog/update-blog/${blogId}`
+        : `${process.env.NEXT_PUBLIC_URL}/api/travel-blog/create-blog`;
+
+      const method = isEditMode ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(draft),
+      });
 
       if (!res.ok) {
         const msg = await res.text();
-        throw new Error(msg || "Failed to publish blog");
+        throw new Error(
+          msg || `Failed to ${isEditMode ? "update" : "publish"} blog`
+        );
       }
 
       const blog = await res.json();
 
-      // Clear draft
-      localStorage.removeItem(DRAFT_KEY);
+      if (!isEditMode) {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+
       toast({
-        title: "Published",
-        description: "Your story is live!",
+        title: isEditMode ? "Updated 🎉" : "Published 🎉",
+        description: isEditMode
+          ? "Your changes have been saved!"
+          : "Your story is live!",
         variant: "default",
+        className: "bg-green-600 text-white border-none",
       });
 
-      // Redirect to the blog page
-      router.push(`/travel-blogs`);
+      router.push(`/travel-blogs/${blog.id || blogId}`);
     } catch (e: any) {
-      console.log("Error Status:", e.status); // ✅ will log 401, 413, etc.
+      console.log("Error Status:", e.status);
       console.log("Error Message:", e.message);
 
       if (e.status === 401) {
@@ -261,7 +403,8 @@ export default function BlogEditor() {
       } else {
         toast({
           title: "Error",
-          description: e.message || "Publish failed",
+          description:
+            e.message || `${isEditMode ? "Update" : "Publish"} failed`,
           variant: "destructive",
         });
       }
@@ -270,21 +413,69 @@ export default function BlogEditor() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white text-[color:var(--color-navy)]">
+        <motion.div
+          initial={{ rotate: 0 }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+          className="h-12 w-12 rounded-full border-4 border-[color:var(--color-brand)] border-t-transparent"
+        />
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-4 text-sm font-medium text-gray-500"
+        >
+          Loading your story editor...
+        </motion.p>
+      </div>
+    );
+  }
+
   return (
     <section
       className={`mx-auto ${
         fullscreen ? "max-w-full px-8" : "max-w-6xl px-4"
       } py-10 transition-all`}
     >
+      {(loading || submitting) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1 }}
+            className="h-10 w-10 rounded-full border-4 border-[color:var(--color-brand)] border-t-transparent"
+          />
+        </motion.div>
+      )}
+
       {/* Top toolbar */}
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-[color:var(--color-navy)]">
-            ✨ Write Your Story
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Premium editor with inline images & rich formatting
-          </p>
+        <div className="flex items-center gap-3">
+          {isEditMode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="gap-2"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-[color:var(--color-navy)]">
+              {isEditMode ? " Edit Your Story" : "✨ Write Your Story"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Premium editor with inline images & rich formatting
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {readingTime > 0 && (
@@ -296,27 +487,73 @@ export default function BlogEditor() {
           <Button
             variant="ghost"
             onClick={() => setFullscreen(!fullscreen)}
-            className="gap-2"
+            className="gap-2 relative"
           >
-            <Maximize2 className="size-4" />
-            {fullscreen ? "Exit" : "Focus"}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={fullscreen ? "exit" : "focus"}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-2"
+              >
+                {fullscreen ? (
+                  <Minimize2 className="size-4" />
+                ) : (
+                  <Maximize2 className="size-4" />
+                )}
+                {fullscreen ? "Exit" : "Focus"}
+              </motion.span>
+            </AnimatePresence>
           </Button>
-          {/* <Button
+          <Button
             variant="ghost"
             onClick={() => setPreview((p) => !p)}
-            className="gap-2"
+            className="gap-2 relative"
           >
-            <Eye className="size-4" />
-            {preview ? "Edit" : "Preview"}
-          </Button> */}
-          <Button
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={preview ? "edit" : "preview"}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-2"
+              >
+                {preview ? (
+                  <Pencil className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+                {preview ? "Edit" : "Preview"}
+              </motion.span>
+            </AnimatePresence>
+          </Button>
+          <motion.button
             disabled={!canSubmit || submitting}
             onClick={submit}
-            className="gap-2 rounded-full bg-[color:var(--color-brand)] text-white hover:opacity-90"
+            whileHover={!submitting && canSubmit ? { scale: 1.05 } : {}}
+            whileTap={!submitting && canSubmit ? { scale: 0.97 } : {}}
+            animate={{
+              opacity: !canSubmit || submitting ? 0.7 : 1,
+              backgroundColor: "var(--color-brand)",
+            }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="gap-2 flex items-center rounded-full px-5 py-2.5 font-semibold text-white shadow-md transition-all disabled:cursor-not-allowed"
           >
-            <Save className="size-4" />
-            {submitting ? "Publishing…" : "Publish"}
-          </Button>
+            {submitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {isEditMode ? "Updating…" : "Publishing…"}
+              </>
+            ) : (
+              <>
+                <Save className="size-4" />
+                {isEditMode ? "Update" : "Publish"}
+              </>
+            )}
+          </motion.button>
         </div>
       </div>
 
