@@ -140,7 +140,7 @@ export default function MembersSection({
                         color: member.color,
                       }}
                     >
-                      {member.avatar}
+                      {member.avatar[0]}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-foreground">

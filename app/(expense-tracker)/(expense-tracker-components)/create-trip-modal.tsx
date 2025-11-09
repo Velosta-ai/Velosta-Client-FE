@@ -20,13 +20,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 
 interface CreateTripModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTripCreated: (trip: any) => void;
-  userId?: string; // optional if you add auth context
+  userId?: string;
 }
 
 export default function CreateTripModal({
@@ -44,6 +44,7 @@ export default function CreateTripModal({
   });
   const [loading, setLoading] = useState(false);
 
+  // --- Handle trip creation ---
   const handleCreateTrip = async () => {
     if (!formData.destination || !formData.startDate || !formData.endDate) {
       toast({
@@ -56,7 +57,6 @@ export default function CreateTripModal({
 
     try {
       setLoading(true);
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_URL}/api/expense-tracker/trips`,
         {
@@ -68,20 +68,19 @@ export default function CreateTripModal({
             startDate: formData.startDate,
             endDate: formData.endDate,
             preferences: {},
-            plan: {}, // ✅ matches updated Prisma schema
+            plan: {},
           }),
         }
       );
 
-      if (!res.ok) throw new Error("Failed to create trip.");
+      if (!res.ok) throw new Error("Failed to create trip");
       const newTrip = await res.json();
-      onTripCreated(newTrip);
 
+      onTripCreated(newTrip);
       toast({
         title: "Trip created 🎉",
-        description: `${formData.destination} has been added successfully.`,
+        description: `${formData.destination} added successfully.`,
       });
-
       handleClose();
     } catch (err: any) {
       toast({
@@ -95,14 +94,25 @@ export default function CreateTripModal({
   };
 
   const handleClose = () => {
-    setFormData({
-      destination: "",
-      startDate: null,
-      endDate: null,
-    });
+    setFormData({ destination: "", startDate: null, endDate: null });
     onClose();
   };
-  console.log(userId, "hola");
+
+  // --- Date range logic (FIXED) ---
+  const handleDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
+    if (!range) return;
+
+    setFormData({
+      ...formData,
+      startDate: range.from || null,
+      endDate: range.to || null,
+    });
+  };
+
+  const { startDate, endDate } = formData;
+  const days =
+    startDate && endDate ? differenceInDays(endDate, startDate) + 1 : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md rounded-xl border-border p-6">
@@ -133,67 +143,47 @@ export default function CreateTripModal({
             />
           </div>
 
-          {/* Date Pickers */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Start Date */}
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={`w-full justify-start text-left font-normal rounded-lg h-9 ${
-                      !formData.startDate ? "text-muted-foreground" : ""
-                    }`}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.startDate
-                      ? format(formData.startDate, "PPP")
-                      : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.startDate ?? undefined}
-                    onSelect={(date) =>
-                      setFormData({ ...formData, startDate: date ?? null })
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          {/* Date Range Picker (FIXED) */}
+          <div className="space-y-2">
+            <Label>Travel Dates</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`
+                    w-full justify-start text-left font-normal rounded-lg h-9
+                    ${!startDate ? "text-muted-foreground" : ""}
+                  `}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate && endDate
+                    ? `${format(startDate, "PPP")} → ${format(endDate, "PPP")}`
+                    : startDate
+                    ? `${format(startDate, "PPP")} → Select end`
+                    : "Pick travel dates"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{
+                    from: startDate ?? undefined,
+                    to: endDate ?? undefined,
+                  }}
+                  onSelect={handleDateSelect}
+                  numberOfMonths={2}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
 
-            {/* End Date */}
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={`w-full justify-start text-left font-normal rounded-lg h-9 ${
-                      !formData.endDate ? "text-muted-foreground" : ""
-                    }`}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.endDate
-                      ? format(formData.endDate, "PPP")
-                      : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.endDate ?? undefined}
-                    onSelect={(date) =>
-                      setFormData({ ...formData, endDate: date ?? null })
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            {/* Display summary */}
+            {startDate && endDate && (
+              <p className="text-xs text-muted-foreground mt-1">
+                ✈️ Trip duration: <span className="font-medium">{days}</span>{" "}
+                {days === 1 ? "day" : "days"}
+              </p>
+            )}
           </div>
 
           {/* Actions */}

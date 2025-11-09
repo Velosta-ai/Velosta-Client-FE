@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -44,9 +44,9 @@ export default function AddExpenseModal({
     title: "",
     category: "Food",
     amount: "",
-    payer: members[0]?.id || "",
+    payerId: members[0]?.id || "",
     date: new Date().toISOString().split("T")[0],
-    splitMembers: members.map((m) => m.id),
+    splitMemberIds: members.map((m) => m.id),
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -56,7 +56,7 @@ export default function AddExpenseModal({
     if (!formData.title.trim()) newErrors.title = "Title is required.";
     if (!formData.amount || Number(formData.amount) <= 0)
       newErrors.amount = "Enter a valid amount.";
-    if (!formData.splitMembers.length)
+    if (!formData.splitMemberIds.length)
       newErrors.split = "Select at least one person.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -72,18 +72,15 @@ export default function AddExpenseModal({
       return;
     }
 
-    const payer = members.find((m) => m.id === formData.payer);
-    const splitMemberNames = members
-      .filter((m) => formData.splitMembers.includes(m.id))
-      .map((m) => m.name);
-
+    const payer = members.find((m) => m.id === formData.payerId);
     const newExpense = {
       title: formData.title.trim(),
       category: formData.category,
       amount: Number.parseFloat(formData.amount),
+      payerId: formData.payerId,
       payer: payer?.name || "",
       date: formData.date,
-      splitMembers: splitMemberNames,
+      splitMemberIds: formData.splitMemberIds,
     };
 
     try {
@@ -110,9 +107,9 @@ export default function AddExpenseModal({
       title: "",
       category: "Food",
       amount: "",
-      payer: members[0]?.id || "",
+      payerId: members[0]?.id || "",
       date: new Date().toISOString().split("T")[0],
-      splitMembers: members.map((m) => m.id),
+      splitMemberIds: members.map((m) => m.id),
     });
     setErrors({});
     onClose();
@@ -121,18 +118,18 @@ export default function AddExpenseModal({
   const toggleMemberSplit = (memberId: string) => {
     setFormData((prev) => ({
       ...prev,
-      splitMembers: prev.splitMembers.includes(memberId)
-        ? prev.splitMembers.filter((id) => id !== memberId)
-        : [...prev.splitMembers, memberId],
+      splitMemberIds: prev.splitMemberIds.includes(memberId)
+        ? prev.splitMemberIds.filter((id) => id !== memberId)
+        : [...prev.splitMemberIds, memberId],
     }));
   };
 
-  const splitCount = formData.splitMembers.length;
+  const splitCount = formData.splitMemberIds.length;
   const perPersonAmount =
     formData.amount && splitCount
       ? (Number.parseFloat(formData.amount) / splitCount).toFixed(2)
       : "0.00";
-  console.log(formData.amount, splitCount);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-xl border-border shadow-md">
@@ -153,9 +150,7 @@ export default function AddExpenseModal({
         >
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-sm font-medium">
-              Title
-            </Label>
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               placeholder="e.g., Dinner at Café"
@@ -167,19 +162,12 @@ export default function AddExpenseModal({
                 errors.title ? "border-destructive" : "border-border"
               }`}
             />
-            {errors.title && (
-              <p className="text-xs text-destructive">{errors.title}</p>
-            )}
           </div>
 
           {/* Category */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Category</Label>
-            <motion.div
-              className="grid grid-cols-5 gap-2"
-              layout
-              transition={{ duration: 0.2 }}
-            >
+            <Label>Category</Label>
+            <div className="grid grid-cols-5 gap-2">
               {categories.map((cat) => (
                 <Button
                   key={cat}
@@ -190,113 +178,88 @@ export default function AddExpenseModal({
                   {cat}
                 </Button>
               ))}
-            </motion.div>
+            </div>
           </div>
 
           {/* Amount */}
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-sm font-medium">
-              Amount
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-primary">
-                ₹
-              </span>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="0.00"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
-                }
-                className={`pl-7 h-9 rounded-lg border ${
-                  errors.amount ? "border-destructive" : "border-border"
-                }`}
-              />
-            </div>
-            {errors.amount && (
-              <p className="text-xs text-destructive">{errors.amount}</p>
-            )}
+            <Label htmlFor="amount">Amount</Label>
+            <Input
+              id="amount"
+              type="number"
+              placeholder="0.00"
+              value={formData.amount}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
+              className={`h-9 rounded-lg border ${
+                errors.amount ? "border-destructive" : "border-border"
+              }`}
+            />
           </div>
 
           {/* Who Paid */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Who Paid?</Label>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {members.map((member) => (
-                <Button
-                  key={member.id}
-                  variant={formData.payer === member.id ? "default" : "outline"}
-                  onClick={() => setFormData({ ...formData, payer: member.id })}
-                  className="w-full justify-start gap-2 h-9 rounded-lg text-sm"
-                >
-                  <Avatar className="h-5 w-5">
-                    <AvatarFallback
-                      className="text-xs font-semibold"
-                      style={{
-                        backgroundColor: member.color + "20",
-                        color: member.color,
-                      }}
-                    >
-                      {member.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  {member.name}
-                </Button>
-              ))}
-            </div>
+            <Label>Who Paid?</Label>
+            {members.map((member) => (
+              <Button
+                key={member.id}
+                variant={formData.payerId === member.id ? "default" : "outline"}
+                onClick={() => setFormData({ ...formData, payerId: member.id })}
+                className="w-full justify-start gap-2 h-9 rounded-lg text-sm"
+              >
+                <Avatar className="h-5 w-5">
+                  <AvatarFallback
+                    style={{
+                      backgroundColor: member.color + "20",
+                      color: member.color,
+                    }}
+                  >
+                    {member.avatar[0]}
+                  </AvatarFallback>
+                </Avatar>
+                {member.name}
+              </Button>
+            ))}
           </div>
 
           {/* Split Between */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Split Between</Label>
+            <Label>Split Between</Label>
             <div className="space-y-2 p-3 bg-secondary/20 rounded-lg max-h-40 overflow-y-auto border border-border/50">
               {members.map((member) => (
                 <motion.label
                   key={member.id}
                   className="flex items-center gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded transition-colors"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
                 >
                   <Checkbox
-                    checked={formData.splitMembers.includes(member.id)}
+                    checked={formData.splitMemberIds.includes(member.id)}
                     onCheckedChange={() => toggleMemberSplit(member.id)}
                     className="rounded"
                   />
                   <Avatar className="h-6 w-6">
                     <AvatarFallback
-                      className="text-xs font-semibold"
                       style={{
                         backgroundColor: member.color + "20",
                         color: member.color,
                       }}
                     >
-                      {member.avatar}
+                      {member.avatar[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium flex-1">
-                    {member.name}
-                  </span>
+                  <span className="text-sm font-medium">{member.name}</span>
                 </motion.label>
               ))}
             </div>
-            {errors.split && (
-              <p className="text-xs text-destructive">{errors.split}</p>
-            )}
           </div>
 
           {/* Split Summary */}
-          <motion.div
-            className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1">
             <p className="text-xs text-muted-foreground">
               Split equally among {splitCount} people
             </p>
             <p className="text-lg font-semibold text-foreground">
-              {/* ${perPersonAmount} each */}
+              ₹{perPersonAmount} each
             </p>
           </motion.div>
 
@@ -306,20 +269,16 @@ export default function AddExpenseModal({
               variant="outline"
               onClick={handleClose}
               disabled={loading}
-              className="flex-1 rounded-lg h-9 border-border bg-transparent"
+              className="flex-1 rounded-lg h-9"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg h-9"
+              className="flex-1 rounded-lg h-9 bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Add Expense"
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
             </Button>
           </div>
         </motion.div>

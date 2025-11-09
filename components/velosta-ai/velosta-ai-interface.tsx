@@ -12,7 +12,6 @@ export default function VelostaBotInterface() {
 
   function handleFirstUserMessage(first: string) {
     // Optional: Handle first message if needed for analytics or logging
-    console.log("First user message:", first);
   }
 
   return (

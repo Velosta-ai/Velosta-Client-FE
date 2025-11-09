@@ -30,16 +30,12 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
   const [retryKey, setRetryKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, setUser, setAccessToken, accessToken } = useUser();
-  console.log(user?.id, "erii");
   useEffect(() => {
     if (!user?.id) return;
-
     const fetchTrips = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        console.log(user?.id, "fetching trips for user");
 
         const res = await fetch(
           `${
@@ -125,16 +121,46 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
         {/* Empty State */}
         {!loading && !error && trips.length === 0 && (
           <motion.div
-            className="text-center py-20"
+            className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl  transition-all duration-300"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <MapPin className="w-8 h-8 text-primary mx-auto mb-3" />
-            <h3 className="text-foreground font-medium">No trips yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Create a trip to start tracking expenses!
+            <motion.div
+              className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <MapPin className="w-8 h-8 text-primary" />
+            </motion.div>
+
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              No trips yet
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+              You haven’t created any trips yet. Start by adding one to track
+              your expenses and memories!
             </p>
+
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              size="lg"
+              className="relative group overflow-hidden rounded-xl bg-primary text-primary-foreground shadow hover:shadow-lg transition-all"
+            >
+              <motion.span
+                className="absolute inset-0 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+              />
+              <motion.div
+                className="flex items-center justify-center relative z-10"
+                whileTap={{ scale: 0.9 }}
+              >
+                <Plus className="w-5 h-5 mr-1" />
+                <span className="font-medium">Create Trip</span>
+              </motion.div>
+            </Button>
           </motion.div>
         )}
 
@@ -176,6 +202,7 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
                         onSelectTrip({
                           tripId: trip.id,
                           tripDestination: trip.destination,
+                          createdUserId: trip?.userId,
                         })
                       }
                       className="p-4 border-border hover:bg-secondary/40 transition-all cursor-pointer group rounded-xl shadow-sm hover:shadow-md"

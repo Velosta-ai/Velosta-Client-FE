@@ -11,6 +11,7 @@ export default function Home() {
   const [selectedTrip, setSelectedTrip] = useState<{
     tripId: string;
     tripDestination: string;
+    createdUserId: string;
   } | null>(null);
 
   if (!selectedTrip) {
@@ -23,15 +24,21 @@ export default function Home() {
     );
   }
 
-  console.log(selectedTrip, "selected");
-
+  async function handleDeleteTrip() {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_URL}/api/expense-tracker/trips/${selectedTrip?.tripId}`,
+      { method: "DELETE" }
+    );
+  }
   return (
     <div>
       <Navbar />
       <TripDetails
         tripId={selectedTrip.tripId}
+        createdUserId={selectedTrip?.createdUserId}
         tripName={selectedTrip.tripDestination}
         onBack={() => setSelectedTrip(null)}
+        handleDeleteTrip={handleDeleteTrip}
       />
       <Footer />
     </div>

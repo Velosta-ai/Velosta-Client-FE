@@ -32,7 +32,6 @@ export default function BlogList() {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        console.log(payload, "User payload");
         setCurrentUserId(payload.id);
       } catch (err) {
         console.error("Failed to decode token:", err);
@@ -61,7 +60,6 @@ export default function BlogList() {
         if (!res.ok) throw new Error("Failed to fetch blogs");
 
         const data: BlogPost[] = await res.json();
-        console.log("All posts:", data);
         setPosts(data);
       } catch (err) {
         console.error(err);
@@ -84,12 +82,8 @@ export default function BlogList() {
           ? p.authorId === currentUserId
           : p.id.includes(currentUserId); // Fallback if authorId is missing
 
-        console.log(
-          `Post ${p.id}: authorId=${p.authorId}, currentUserId=${currentUserId}, isMyPost=${isMyPost}`
-        );
         return isMyPost;
       });
-      console.log("Filtered my posts:", result);
     }
 
     // Apply search query

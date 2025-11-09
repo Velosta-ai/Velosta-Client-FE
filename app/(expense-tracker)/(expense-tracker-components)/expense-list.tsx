@@ -24,7 +24,8 @@ interface Expense {
   amount: number;
   payer: string;
   date: string;
-  splitMembers?: string[]; // 👈 optional now
+  splitMembers?: string[];
+  splitMemberIds?: string[];
 }
 
 interface Member {
@@ -66,7 +67,7 @@ export default function ExpensesList({
 }: ExpensesListProps) {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  console.log(members.length, "members");
+
   const handleDelete = async (id: string, title: string) => {
     try {
       setDeletingId(id);
@@ -86,6 +87,26 @@ export default function ExpensesList({
     }
   };
 
+  // 🌀 Define reusable variants for smoother animation
+  const containerVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        staggerChildren: 0.05,
+        duration: 0.4,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+  };
+
   if (loading) {
     return (
       <Card className="p-6 border-border">
@@ -103,10 +124,10 @@ export default function ExpensesList({
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      variants={containerVariants}
     >
       <Card className="p-6 border-border rounded-2xl shadow-sm hover:shadow-md transition-all">
         <div className="mb-6 flex items-center justify-between">
@@ -119,8 +140,7 @@ export default function ExpensesList({
           </p>
         </div>
 
-        {/* Empty State */}
-        {expenses.length === 0 && (
+        {expenses.length === 0 ? (
           <motion.div
             className="text-center py-12"
             initial={{ opacity: 0 }}
@@ -131,112 +151,122 @@ export default function ExpensesList({
               No expenses yet. Add one to get started!
             </p>
           </motion.div>
-        )}
+        ) : (
+          <AnimatePresence>
+            <motion.div
+              layout
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="space-y-2"
+            >
+              {expenses.map((expense) => {
+                const IconComponent =
+                  categoryIcons[expense.category] || MoreVertical;
 
-        {/* Expense List */}
-        <AnimatePresence>
-          <motion.div layout className="space-y-2">
-            {expenses.map((expense) => {
-              const IconComponent =
-                categoryIcons[expense.category] || MoreVertical;
+                const splitCount = expense?.splitMemberIds?.length || 1;
+                const perPersonAmount = expense.amount / splitCount;
 
-              const splitCount = expense.splitMembers?.length || 1;
-              const perPersonAmount = expense.amount / splitCount;
-              console.log(expense, "per");
-              return (
-                <motion.div
-                  key={expense.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  className="p-4 rounded-xl border border-border hover:bg-secondary/30 transition-all group"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          categoryColors[expense.category]
-                        }`}
-                      >
-                        <IconComponent className="w-4 h-4" />
-                      </div>
+                return (
+                  <motion.div
+                    key={expense.id}
+                    layout
+                    variants={itemVariants}
+                    exit="exit"
+                    className="p-4 rounded-xl border border-border hover:bg-secondary/30 transition-all group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            categoryColors[expense.category]
+                          }`}
+                        >
+                          <IconComponent className="w-4 h-4" />
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-foreground truncate">
-                          {expense.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Paid by{" "}
-                          <span className="font-medium">{expense.payer}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right ml-4 flex-shrink-0">
-                      <p className="text-sm font-semibold text-foreground">
-                        ₹{expense.amount.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {/* ${perPersonAmount} each */}
-                      </p>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={deletingId === expense.id}
-                      className="h-8 w-8 p-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-lg"
-                      onClick={() => handleDelete(expense.id, expense.title)}
-                    >
-                      {deletingId === expense.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-destructive" />
-                      ) : (
-                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Split Members */}
-                  {expense.splitMembers && expense.splitMembers.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {expense.splitMembers.map((memberName) => {
-                        const member = members.find(
-                          (m) => m.name === memberName
-                        );
-                        return (
-                          <div
-                            key={memberName}
-                            className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary/40 text-xs"
-                          >
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback
-                                className="text-xs font-semibold"
-                                style={{
-                                  backgroundColor: member?.color + "40",
-                                  color: member?.color,
-                                }}
-                              >
-                                {member?.avatar}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-foreground text-xs font-medium">
-                              {memberName}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-foreground truncate">
+                            {expense.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Paid by{" "}
+                            <span className="font-medium">
+                              {typeof expense.payer === "object"
+                                ? expense.payer?.name || "Unknown"
+                                : expense.payer || "Unknown"}
                             </span>
-                          </div>
-                        );
-                      })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(expense.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right ml-4 flex-shrink-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          ₹{expense.amount.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ₹{perPersonAmount.toFixed(2)} each
+                        </p>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={deletingId === expense.id}
+                        className="h-8 w-8 p-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-lg"
+                        onClick={() => handleDelete(expense.id, expense.title)}
+                      >
+                        {deletingId === expense.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-destructive" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        )}
+                      </Button>
                     </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
+
+                    {expense.splitMemberIds &&
+                      expense.splitMemberIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {expense.splitMemberIds.map((memberId: string) => {
+                            const member = members.find(
+                              (m) => m.id === memberId
+                            );
+                            if (!member) return null;
+
+                            return (
+                              <div
+                                key={member.id}
+                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary/40 text-xs"
+                              >
+                                <Avatar className="h-4 w-4">
+                                  <AvatarFallback
+                                    className="text-xs font-semibold"
+                                    style={{
+                                      backgroundColor: member.color + "40",
+                                      color: member.color,
+                                    }}
+                                  >
+                                    {member.avatar[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-foreground text-xs font-medium">
+                                  {member.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </Card>
     </motion.div>
   );

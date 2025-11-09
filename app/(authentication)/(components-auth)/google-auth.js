@@ -35,7 +35,6 @@ export default function GoogleOneTapLogin({ onLogin }) {
 
     const data = await res.json();
     if (data.accessToken) {
-      console.log("Login successful:", data.user);
       onLogin(data); // send accessToken + user info to app state
     } else {
       console.error("Login failed:", data);

@@ -216,7 +216,6 @@ export default function BlogEditor() {
     const words = text.split(/\s+/).filter((w) => w.length > 0).length;
     return Math.ceil(words / 200);
   }, [draft.content]);
-  console.log(draft, "hola");
   // const canSubmit = useMemo(
   //   () => draft.title.trim().length > 0 && draft.content.trim().length > 0,
   //   [draft.title, draft.content]
