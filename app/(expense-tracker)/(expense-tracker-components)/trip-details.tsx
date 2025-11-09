@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -27,21 +27,13 @@ import {
 } from "@/components/ui/dialog";
 import { useUser } from "@/app/utils/context";
 
-interface TripDetailsProps {
-  tripId: string;
-  tripName: string;
-  createdUserId: string;
-  onBack: () => void;
-  handleDeleteTrip: () => void;
-}
-
 export default function TripDetails({
   tripId,
   tripName,
   onBack,
   handleDeleteTrip,
   createdUserId,
-}: TripDetailsProps) {
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,6 +44,7 @@ export default function TripDetails({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const { user } = useUser();
 
   /* ------------------------ FETCH DATA ------------------------ */
   useEffect(() => {
@@ -59,6 +52,7 @@ export default function TripDetails({
       try {
         setLoading(true);
         setError(null);
+
         const [membersRes, expensesRes] = await Promise.all([
           fetch(
             `${process.env.NEXT_PUBLIC_URL}/api/expense-tracker/trips/${tripId}/members`
@@ -69,7 +63,7 @@ export default function TripDetails({
         ]);
 
         if (!membersRes.ok || !expensesRes.ok)
-          throw new Error("Failed to fetch data");
+          throw new Error("Failed to fetch trip data");
 
         const [membersData, expensesData] = await Promise.all([
           membersRes.json(),
@@ -94,7 +88,7 @@ export default function TripDetails({
 
   const handleRetry = () => setRetryKey((k) => k + 1);
 
-  /* ------------------------ MEMBERS API ------------------------ */
+  /* ------------------------ ADD/REMOVE MEMBERS ------------------------ */
   const handleAddMember = async (name: string) => {
     try {
       const newMember = {
@@ -141,7 +135,7 @@ export default function TripDetails({
     }
   };
 
-  /* ------------------------ EXPENSES API ------------------------ */
+  /* ------------------------ EXPENSES ------------------------ */
   const handleAddExpense = async (expense: any) => {
     try {
       const res = await fetch(
@@ -184,20 +178,13 @@ export default function TripDetails({
     }
   };
 
-  /* ------------------------ TRIP DELETE ------------------------ */
+  /* ------------------------ DELETE TRIP ------------------------ */
   const confirmDeleteTrip = async () => {
     try {
       setDeletingTrip(true);
-      await handleDeleteTrip(); // calls backend delete
-      toast({
-        title: "Trip deleted",
-        description: "Redirecting to all trips...",
-      });
-
-      // Smooth transition
-      setTimeout(() => {
-        router.push("/expense-tracker");
-      }, 1000);
+      await handleDeleteTrip();
+      toast({ title: "Trip deleted", description: "Redirecting..." });
+      setTimeout(() => router.push("/expense-tracker"), 1000);
     } catch (err: any) {
       toast({
         title: "Error deleting trip",
@@ -216,36 +203,35 @@ export default function TripDetails({
     0
   );
 
-  /* ------------------------ LOADING / ERROR ------------------------ */
+  /* ------------------------ LOADING STATE ------------------------ */
   if (loading)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="animate-pulse w-full max-w-2xl space-y-4">
-          <div className="h-8 bg-muted/30 rounded-lg"></div>
-          <div className="h-24 bg-muted/30 rounded-lg"></div>
-          <div className="h-64 bg-muted/30 rounded-lg"></div>
-        </div>
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-accent" />
       </div>
     );
 
+  /* ------------------------ ERROR STATE ------------------------ */
   if (error)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center">
-        <p className="text-destructive font-medium mb-4">{error}</p>
-        <Button variant="outline" onClick={handleRetry} className="gap-2">
+      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center text-center">
+        <p className="text-red-500 font-medium mb-4">{error}</p>
+        <Button
+          variant="outline"
+          onClick={handleRetry}
+          className="gap-2 border-brand-accent text-brand-accent hover:bg-brand-surface"
+        >
           <RefreshCcw className="w-4 h-4" />
           Retry
         </Button>
       </div>
     );
 
-  /* ------------------------ MAIN RENDER ------------------------ */
-  const { user, setUser, setAccessToken, accessToken } = useUser();
-
+  /* ------------------------ MAIN UI ------------------------ */
   return (
     <>
       <motion.div
-        className="min-h-screen bg-background mt-24"
+        className="min-h-screen bg-brand-bg pt-24 pb-16 transition-all"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -262,34 +248,34 @@ export default function TripDetails({
                 variant="ghost"
                 size="sm"
                 onClick={onBack}
-                className="h-9 w-9 p-0 rounded-lg hover:bg-secondary/50"
+                className="h-9 w-9 p-0 rounded-lg hover:bg-brand-surface"
               >
-                <ArrowLeft className="w-5 h-5 text-foreground" />
+                <ArrowLeft className="w-5 h-5 text-gray-700" />
               </Button>
               <div>
-                <h1 className="text-2xl font-semibold text-foreground">
+                <h1 className="text-2xl font-semibold text-gray-900">
                   {tripName}
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Manage expenses and splits
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage expenses and members
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-5 justify-center">
+            <div className="flex flex-col gap-4">
               <Button
                 onClick={() => setIsModalOpen(true)}
-                className="gap-2 h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                className="gap-2 h-10 rounded-lg bg-brand-accent text-white hover:shadow-lg transition bg-[black]"
               >
                 <Plus className="w-4 h-4" />
                 Add Expense
               </Button>
 
-              {createdUserId == user?.id && (
+              {createdUserId === user?.id && (
                 <Button
                   onClick={() => setIsDeleteConfirmOpen(true)}
                   disabled={deletingTrip}
-                  className="gap-2 h-10 rounded-lg bg-red-700 text-primary-foreground hover:bg-red-800"
+                  className="gap-2 h-10 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
                 >
                   {deletingTrip ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -303,17 +289,17 @@ export default function TripDetails({
           </motion.div>
 
           {/* Total Summary */}
-          <Card className="p-6 mb-8 border-border bg-gradient-to-r from-primary/5 to-transparent rounded-2xl shadow-sm">
+          <Card className="p-6 mb-8 bg-brand-surface rounded-2xl shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-3xl font-semibold text-foreground mt-1">
+                <p className="text-sm text-gray-600">Total Expenses</p>
+                <p className="text-3xl font-semibold text-gray-900 mt-1">
                   ₹{totalExpenses.toFixed(2)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Members</p>
-                <p className="text-3xl font-semibold text-foreground mt-1">
+                <p className="text-sm text-gray-600">Members</p>
+                <p className="text-3xl font-semibold text-gray-900 mt-1">
                   {members.length}
                 </p>
               </div>
@@ -337,6 +323,7 @@ export default function TripDetails({
           </div>
         </main>
 
+        {/* Add Expense Modal */}
         <AddExpenseModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -345,17 +332,18 @@ export default function TripDetails({
         />
       </motion.div>
 
-      {/* ⚠️ Delete Confirmation Dialog */}
+      {/* Delete Trip Dialog */}
       <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-white rounded-xl shadow-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="w-5 h-5" />
               Confirm Delete
             </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <strong>{tripName}</strong>? This
-              action cannot be undone.
+            <DialogDescription className="text-gray-600">
+              Are you sure you want to delete{" "}
+              <strong className="text-gray-800">{tripName}</strong>? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end gap-2">
@@ -363,6 +351,7 @@ export default function TripDetails({
               variant="outline"
               onClick={() => setIsDeleteConfirmOpen(false)}
               disabled={deletingTrip}
+              className="hover:bg-brand-surface"
             >
               Cancel
             </Button>
@@ -370,7 +359,7 @@ export default function TripDetails({
               variant="destructive"
               onClick={confirmDeleteTrip}
               disabled={deletingTrip}
-              className="gap-2"
+              className="gap-2 bg-red-600 hover:bg-red-700 text-white"
             >
               {deletingTrip && <Loader2 className="w-4 h-4 animate-spin" />}
               {deletingTrip ? "Deleting..." : "Yes, Delete"}

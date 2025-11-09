@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { MapPin, ChevronRight, RefreshCcw, Plus } from "lucide-react";
+import { MapPin, ChevronRight, RefreshCcw, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import CreateTripModal from "../(expense-tracker-components)/create-trip-modal";
@@ -29,20 +29,19 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { user, setUser, setAccessToken, accessToken } = useUser();
+  const { user } = useUser();
+
   useEffect(() => {
     if (!user?.id) return;
     const fetchTrips = async () => {
       try {
         setLoading(true);
         setError(null);
-
         const res = await fetch(
           `${
             process.env.NEXT_PUBLIC_URL
           }/api/expense-tracker/trips?cacheBust=${Date.now()}&userId=${user.id}`
         );
-
         if (!res.ok) throw new Error("Failed to fetch trips.");
         const data = await res.json();
         setTrips(data);
@@ -57,7 +56,6 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
         setLoading(false);
       }
     };
-
     fetchTrips();
   }, [user?.id, retryKey]);
 
@@ -72,45 +70,38 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background mt-20 flex flex-col items-center relative">
-      <main className="max-w-2xl w-full mx-auto px-4 py-12">
+    <div className="min-h-screen bg-brand-bg flex flex-col items-center pt-20 relative transition-all">
+      <main className="max-w-2xl w-full mx-auto px-4 py-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-10 text-center"
+          className="text-center mb-8"
         >
-          <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-            Your Trips
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2">
+          <h1 className="text-3xl font-semibold text-gray-900">Your Trips</h1>
+          <p className="text-sm text-gray-500 mt-2">
             Select or create a trip to view and manage expenses
           </p>
         </motion.div>
 
-        {/* Loader Skeleton */}
+        {/* Loader */}
         {loading && (
-          <div className="space-y-3 animate-pulse">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-20 bg-muted/30 rounded-xl border border-border"
-              />
-            ))}
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-accent" />
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {!loading && error && (
           <div className="text-center py-12">
-            <p className="text-destructive font-medium mb-3">
+            <p className="text-red-500 font-medium mb-3">
               {error || "Something went wrong"}
             </p>
             <Button
               onClick={handleRetry}
               variant="outline"
-              className="flex items-center gap-2 mx-auto"
+              className="flex items-center gap-2 mx-auto border-brand-accent text-brand-accent hover:bg-brand-surface"
             >
               <RefreshCcw className="w-4 h-4" />
               Retry
@@ -121,24 +112,22 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
         {/* Empty State */}
         {!loading && !error && trips.length === 0 && (
           <motion.div
-            className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl  transition-all duration-300"
+            className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl bg-brand-surface/60 shadow-sm transition-all duration-300"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <motion.div
-              className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4"
+              className="flex items-center justify-center w-16 h-16 rounded-full bg-brand-accent/10 mb-4"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
             >
-              <MapPin className="w-8 h-8 text-primary" />
+              <MapPin className="w-8 h-8 text-brand-accent" />
             </motion.div>
 
-            <h3 className="text-xl font-semibold text-foreground mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
               No trips yet
             </h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+            <p className="text-sm text-gray-600 mb-6 max-w-sm">
               You haven’t created any trips yet. Start by adding one to track
               your expenses and memories!
             </p>
@@ -146,20 +135,10 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
             <Button
               onClick={() => setIsModalOpen(true)}
               size="lg"
-              className="relative group overflow-hidden rounded-xl bg-primary text-primary-foreground shadow hover:shadow-lg transition-all"
+              className="bg-brand-accent text-white rounded-xl shadow hover:shadow-lg transition-all"
             >
-              <motion.span
-                className="absolute inset-0 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-              />
-              <motion.div
-                className="flex items-center justify-center relative z-10"
-                whileTap={{ scale: 0.9 }}
-              >
-                <Plus className="w-5 h-5 mr-1" />
-                <span className="font-medium">Create Trip</span>
-              </motion.div>
+              <Plus className="w-5 h-5 mr-1" />
+              Create Trip
             </Button>
           </motion.div>
         )}
@@ -172,7 +151,6 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
               className="space-y-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
             >
               {trips.map((trip) => {
                 const start = new Date(trip.startDate).toLocaleDateString(
@@ -205,32 +183,32 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
                           createdUserId: trip?.userId,
                         })
                       }
-                      className="p-4 border-border hover:bg-secondary/40 transition-all cursor-pointer group rounded-xl shadow-sm hover:shadow-md"
+                      className="p-4 bg-brand-surface border border-brand-surface/70 hover:bg-brand-surface/90 transition-all cursor-pointer group rounded-xl shadow-sm hover:shadow-md"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-start gap-4 flex-1">
-                          <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                            <MapPin className="w-5 h-5 text-primary" />
+                          <div className="p-3 bg-brand-accent/10 rounded-lg group-hover:bg-brand-accent/20 transition-colors">
+                            <MapPin className="w-5 h-5 text-brand-accent" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-foreground">
+                            <h3 className="font-semibold text-gray-900">
                               {trip.destination}
                             </h3>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                               {start} – {end}
                             </p>
                           </div>
                         </div>
                         <div className="text-right flex items-center gap-4">
                           <div>
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="text-sm font-semibold text-gray-800">
                               ₹{total.toFixed(2)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500">
                               {membersCount} members
                             </p>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </Card>
@@ -242,7 +220,7 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
         </AnimatePresence>
       </main>
 
-      {/* Floating Create Trip Button */}
+      {/* Floating Button */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -251,10 +229,10 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
       >
         <Button
           onClick={() => setIsModalOpen(true)}
-          className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 transition-all relative"
+          className="w-12 h-12 rounded-full bg-brand-accent text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all relative"
         >
           <motion.span
-            className="absolute inset-0 rounded-full bg-primary/40 blur-lg"
+            className="absolute inset-0 rounded-full bg-brand-accent/40 blur-lg"
             animate={{ opacity: [0.4, 0.8, 0.4] }}
             transition={{ repeat: Infinity, duration: 2 }}
           />
@@ -262,7 +240,7 @@ export default function TripsList({ onSelectTrip }: TripsListProps) {
         </Button>
       </motion.div>
 
-      {/* Create Trip Modal */}
+      {/* Modal */}
       <CreateTripModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

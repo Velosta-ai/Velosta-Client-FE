@@ -51,12 +51,11 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryColors: Record<string, string> = {
-  Food: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  Stay: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Travel:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  Shopping: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
-  Other: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
+  Food: "bg-[#FFE5D1]/70 text-[#FF792A]",
+  Stay: "bg-[#E0F0FF]/70 text-[#0066CC]",
+  Travel: "bg-[#F2E6FF]/70 text-[#7A3EF0]",
+  Shopping: "bg-[#FFDDE8]/70 text-[#D61F69]",
+  Other: "bg-gray-100 text-gray-600",
 };
 
 export default function ExpensesList({
@@ -87,17 +86,12 @@ export default function ExpensesList({
     }
   };
 
-  // 🌀 Define reusable variants for smoother animation
   const containerVariants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        staggerChildren: 0.05,
-        duration: 0.4,
-        ease: "easeOut",
-      },
+      transition: { staggerChildren: 0.05, duration: 0.3, ease: "easeOut" },
     },
   };
 
@@ -107,14 +101,15 @@ export default function ExpensesList({
     exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
   };
 
+  /* ---------------- Loader ---------------- */
   if (loading) {
     return (
-      <Card className="p-6 border-border">
+      <Card className="p-6 rounded-2xl bg-brand-surface border border-brand-surface/70 shadow-sm">
         <div className="animate-pulse space-y-3">
-          <div className="h-5 w-1/4 bg-muted/30 rounded-lg" />
+          <div className="h-5 w-1/4 bg-[#FF792A]/20 rounded-lg" />
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-muted/30 rounded-lg" />
+              <div key={i} className="h-16 bg-[#FFF9ED]/70 rounded-lg" />
             ))}
           </div>
         </div>
@@ -122,6 +117,7 @@ export default function ExpensesList({
     );
   }
 
+  /* ---------------- Main ---------------- */
   return (
     <motion.div
       initial="hidden"
@@ -129,25 +125,27 @@ export default function ExpensesList({
       exit="hidden"
       variants={containerVariants}
     >
-      <Card className="p-6 border-border rounded-2xl shadow-sm hover:shadow-md transition-all">
+      <Card className="p-6 rounded-2xl bg-brand-surface border border-brand-surface/70 shadow-sm hover:shadow-md transition-all">
+        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ReceiptText className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-foreground">Expenses</h3>
+            <ReceiptText className="w-5 h-5 text-brand-accent" />
+            <h3 className="font-semibold text-gray-900 text-lg">Expenses</h3>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             {expenses.length} transaction{expenses.length !== 1 && "s"}
           </p>
         </div>
 
+        {/* Empty state */}
         {expenses.length === 0 ? (
           <motion.div
             className="text-center py-12"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <Plane className="w-8 h-8 text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
+            <Plane className="w-8 h-8 text-brand-accent mx-auto mb-3" />
+            <p className="text-sm text-gray-600">
               No expenses yet. Add one to get started!
             </p>
           </motion.div>
@@ -164,7 +162,6 @@ export default function ExpensesList({
               {expenses.map((expense) => {
                 const IconComponent =
                   categoryIcons[expense.category] || MoreVertical;
-
                 const splitCount = expense?.splitMemberIds?.length || 1;
                 const perPersonAmount = expense.amount / splitCount;
 
@@ -174,12 +171,13 @@ export default function ExpensesList({
                     layout
                     variants={itemVariants}
                     exit="exit"
-                    className="p-4 rounded-xl border border-border hover:bg-secondary/30 transition-all group"
+                    className="p-4 rounded-xl border border-brand-bg hover:bg-[#FFF9ED]/70 transition-all group"
                   >
                     <div className="flex items-start justify-between mb-3">
+                      {/* Left side */}
                       <div className="flex items-start gap-3 flex-1">
                         <div
-                          className={`p-2 rounded-lg ${
+                          className={`p-2 rounded-lg shadow-sm ${
                             categoryColors[expense.category]
                           }`}
                         >
@@ -187,47 +185,50 @@ export default function ExpensesList({
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-foreground truncate">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">
                             {expense.title}
                           </h4>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-gray-600 mt-1">
                             Paid by{" "}
-                            <span className="font-medium">
+                            <span className="font-medium text-gray-800">
                               {typeof expense.payer === "object"
                                 ? expense.payer?.name || "Unknown"
                                 : expense.payer || "Unknown"}
                             </span>
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-gray-500">
                             {new Date(expense.date).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
+                      {/* Right side */}
                       <div className="text-right ml-4 flex-shrink-0">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-sm font-semibold text-gray-800">
                           ₹{expense.amount.toFixed(2)}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           ₹{perPersonAmount.toFixed(2)} each
                         </p>
                       </div>
 
+                      {/* Delete Button */}
                       <Button
                         size="sm"
                         variant="ghost"
                         disabled={deletingId === expense.id}
-                        className="h-8 w-8 p-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 rounded-lg"
+                        className="h-8 w-8 p-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 rounded-lg"
                         onClick={() => handleDelete(expense.id, expense.title)}
                       >
                         {deletingId === expense.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-destructive" />
+                          <Loader2 className="w-4 h-4 animate-spin text-red-500" />
                         ) : (
-                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                          <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
                         )}
                       </Button>
                     </div>
 
+                    {/* Members split chips */}
                     {expense.splitMemberIds &&
                       expense.splitMemberIds.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
@@ -240,20 +241,20 @@ export default function ExpensesList({
                             return (
                               <div
                                 key={member.id}
-                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary/40 text-xs"
+                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-[#FFF9ED]/90 text-xs border border-[#FFE5D1]"
                               >
                                 <Avatar className="h-4 w-4">
                                   <AvatarFallback
                                     className="text-xs font-semibold"
                                     style={{
-                                      backgroundColor: member.color + "40",
+                                      backgroundColor: member.color + "20",
                                       color: member.color,
                                     }}
                                   >
                                     {member.avatar[0]}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-foreground text-xs font-medium">
+                                <span className="text-gray-800 text-xs font-medium">
                                   {member.name}
                                 </span>
                               </div>

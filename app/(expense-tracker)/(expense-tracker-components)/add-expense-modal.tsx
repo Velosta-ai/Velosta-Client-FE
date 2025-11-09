@@ -132,12 +132,12 @@ export default function AddExpenseModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-xl border-border shadow-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#FFE5D1] bg-[#FFF9ED] shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
+          <DialogTitle className="text-lg font-semibold bg-amber-600 text-gray-900">
             Add Expense
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm text-gray-600">
             Enter details and select who to split with
           </DialogDescription>
         </DialogHeader>
@@ -150,7 +150,9 @@ export default function AddExpenseModal({
         >
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title" className="text-gray-700">
+              Title
+            </Label>
             <Input
               id="title"
               placeholder="e.g., Dinner at Café"
@@ -158,22 +160,26 @@ export default function AddExpenseModal({
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className={`h-9 rounded-lg border ${
-                errors.title ? "border-destructive" : "border-border"
-              }`}
+              className={`h-10 rounded-lg border ${
+                errors.title ? "border-red-400" : "border-[#FFE5D1]"
+              } bg-white focus:ring-2 focus:ring-[#FF792A]/50`}
             />
           </div>
 
           {/* Category */}
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label className="text-gray-700">Category</Label>
             <div className="grid grid-cols-5 gap-2">
               {categories.map((cat) => (
                 <Button
                   key={cat}
                   variant={formData.category === cat ? "default" : "outline"}
                   onClick={() => setFormData({ ...formData, category: cat })}
-                  className="h-8 text-xs rounded-lg"
+                  className={`h-8 text-xs rounded-lg transition-all ${
+                    formData.category === cat
+                      ? "bg-[#FF792A] text-white hover:bg-[#FF792A]/90"
+                      : "border-[#FFE5D1] text-gray-700 hover:bg-[#FFE5D1]/40"
+                  }`}
                 >
                   {cat}
                 </Button>
@@ -183,7 +189,9 @@ export default function AddExpenseModal({
 
           {/* Amount */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount" className="text-gray-700">
+              Amount
+            </Label>
             <Input
               id="amount"
               type="number"
@@ -192,50 +200,60 @@ export default function AddExpenseModal({
               onChange={(e) =>
                 setFormData({ ...formData, amount: e.target.value })
               }
-              className={`h-9 rounded-lg border ${
-                errors.amount ? "border-destructive" : "border-border"
-              }`}
+              className={`h-10 rounded-lg border ${
+                errors.amount ? "border-red-400" : "border-[#FFE5D1]"
+              } bg-white focus:ring-2 focus:ring-[#FF792A]/50`}
             />
           </div>
 
           {/* Who Paid */}
           <div className="space-y-2">
-            <Label>Who Paid?</Label>
-            {members.map((member) => (
-              <Button
-                key={member.id}
-                variant={formData.payerId === member.id ? "default" : "outline"}
-                onClick={() => setFormData({ ...formData, payerId: member.id })}
-                className="w-full justify-start gap-2 h-9 rounded-lg text-sm"
-              >
-                <Avatar className="h-5 w-5">
-                  <AvatarFallback
-                    style={{
-                      backgroundColor: member.color + "20",
-                      color: member.color,
-                    }}
-                  >
-                    {member.avatar[0]}
-                  </AvatarFallback>
-                </Avatar>
-                {member.name}
-              </Button>
-            ))}
+            <Label className="text-gray-700">Who Paid?</Label>
+            <div className="space-y-1">
+              {members.map((member) => (
+                <Button
+                  key={member.id}
+                  variant={
+                    formData.payerId === member.id ? "default" : "outline"
+                  }
+                  onClick={() =>
+                    setFormData({ ...formData, payerId: member.id })
+                  }
+                  className={`w-full justify-start gap-2 h-9 rounded-lg transition-all ${
+                    formData.payerId === member.id
+                      ? "bg-[#FF792A] text-white hover:bg-[#FF792A]/90"
+                      : "border-[#FFE5D1] text-gray-700 hover:bg-[#FFE5D1]/40"
+                  }`}
+                >
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback
+                      style={{
+                        backgroundColor: member.color + "20",
+                        color: member.color,
+                      }}
+                    >
+                      {member.avatar[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.name}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Split Between */}
           <div className="space-y-2">
-            <Label>Split Between</Label>
-            <div className="space-y-2 p-3 bg-secondary/20 rounded-lg max-h-40 overflow-y-auto border border-border/50">
+            <Label className="text-gray-700">Split Between</Label>
+            <div className="space-y-2 p-3 bg-[#FFE5D1]/40 rounded-lg border border-[#FFE5D1] max-h-40 overflow-y-auto">
               {members.map((member) => (
                 <motion.label
                   key={member.id}
-                  className="flex items-center gap-3 cursor-pointer hover:bg-secondary/30 p-2 rounded transition-colors"
+                  className="flex items-center gap-3 cursor-pointer hover:bg-[#FFF9ED] p-2 rounded-lg transition-colors"
                 >
                   <Checkbox
                     checked={formData.splitMemberIds.includes(member.id)}
                     onCheckedChange={() => toggleMemberSplit(member.id)}
-                    className="rounded"
+                    className="rounded border-[#FF792A] data-[state=checked]:bg-[#FF792A] data-[state=checked]:text-white"
                   />
                   <Avatar className="h-6 w-6">
                     <AvatarFallback
@@ -247,38 +265,44 @@ export default function AddExpenseModal({
                       {member.avatar[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">{member.name}</span>
+                  <span className="text-sm text-gray-800 font-medium">
+                    {member.name}
+                  </span>
                 </motion.label>
               ))}
             </div>
           </div>
 
           {/* Split Summary */}
-          <motion.div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1">
-            <p className="text-xs text-muted-foreground">
+          <motion.div className="p-3 bg-[#FFE5D1]/40 rounded-lg border border-[#FFE5D1] space-y-1">
+            <p className="text-xs text-gray-600">
               Split equally among {splitCount} people
             </p>
-            <p className="text-lg font-semibold text-foreground">
+            <p className="text-lg font-semibold text-gray-900">
               ₹{perPersonAmount} each
             </p>
           </motion.div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
               onClick={handleClose}
               disabled={loading}
-              className="flex-1 rounded-lg h-9"
+              className="flex-1 h-10 rounded-lg border-[#FFE5D1] text-gray-700 hover:bg-[#FFE5D1]/40"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={loading}
-              className="flex-1 rounded-lg h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="flex-1 h-10 rounded-lg bg-[#FF792A] text-white hover:bg-[#FF792A]/90 transition-all"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                "Add"
+              )}
             </Button>
           </div>
         </motion.div>

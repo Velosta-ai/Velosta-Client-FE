@@ -44,7 +44,6 @@ export default function CreateTripModal({
   });
   const [loading, setLoading] = useState(false);
 
-  // --- Handle trip creation ---
   const handleCreateTrip = async () => {
     if (!formData.destination || !formData.startDate || !formData.endDate) {
       toast({
@@ -98,10 +97,8 @@ export default function CreateTripModal({
     onClose();
   };
 
-  // --- Date range logic (FIXED) ---
   const handleDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (!range) return;
-
     setFormData({
       ...formData,
       startDate: range.from || null,
@@ -115,23 +112,27 @@ export default function CreateTripModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md rounded-xl border-border p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle>Create New Trip</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-md rounded-2xl border border-[#FFE5D1] bg-[#FFF9ED] shadow-lg">
+        <DialogHeader className="space-y-2 text-center">
+          <DialogTitle className="text-lg font-semibold text-gray-900">
+            Create New Trip
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-600">
             Add your destination and travel dates to begin planning.
           </DialogDescription>
         </DialogHeader>
 
         <motion.div
-          className="space-y-5"
+          className="space-y-5 pt-4"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
           {/* Destination */}
           <div className="space-y-2">
-            <Label htmlFor="destination">Destination</Label>
+            <Label htmlFor="destination" className="text-gray-700 text-sm">
+              Destination
+            </Label>
             <Input
               id="destination"
               placeholder="e.g., Tokyo, Japan"
@@ -139,23 +140,22 @@ export default function CreateTripModal({
               onChange={(e) =>
                 setFormData({ ...formData, destination: e.target.value })
               }
-              className="h-9 rounded-lg border-border"
+              className="h-10 rounded-lg border-[#FFE5D1] focus:ring-2 focus:ring-[#FF792A]/50 bg-white"
             />
           </div>
 
-          {/* Date Range Picker (FIXED) */}
+          {/* Date Range Picker */}
           <div className="space-y-2">
-            <Label>Travel Dates</Label>
+            <Label className="text-gray-700 text-sm">Travel Dates</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={`
-                    w-full justify-start text-left font-normal rounded-lg h-9
-                    ${!startDate ? "text-muted-foreground" : ""}
-                  `}
+                  className={`w-full justify-start text-left font-normal rounded-lg h-10 border-[#FFE5D1] ${
+                    !startDate ? "text-gray-500" : "text-gray-800"
+                  } bg-white`}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-[#FF792A]" />
                   {startDate && endDate
                     ? `${format(startDate, "PPP")} → ${format(endDate, "PPP")}`
                     : startDate
@@ -163,7 +163,10 @@ export default function CreateTripModal({
                     : "Pick travel dates"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent
+                className="w-auto p-0 border-[#FFE5D1]"
+                align="start"
+              >
                 <Calendar
                   mode="range"
                   selected={{
@@ -177,34 +180,36 @@ export default function CreateTripModal({
               </PopoverContent>
             </Popover>
 
-            {/* Display summary */}
             {startDate && endDate && (
-              <p className="text-xs text-muted-foreground mt-1">
-                ✈️ Trip duration: <span className="font-medium">{days}</span>{" "}
+              <p className="text-xs text-gray-600 mt-1">
+                ✈️ Trip duration:{" "}
+                <span className="font-medium text-gray-800">{days}</span>{" "}
                 {days === 1 ? "day" : "days"}
               </p>
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          {/* Buttons */}
+          <div className="flex gap-3 pt-3">
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1 rounded-lg h-9 border-border"
+              disabled={loading}
+              className="flex-1 h-10 rounded-lg border-[#FFE5D1] hover:bg-[#FFE5D1]/40 text-gray-700"
             >
               Cancel
             </Button>
+
             <Button
               onClick={handleCreateTrip}
               disabled={loading}
-              className="flex-1 rounded-lg h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="flex-1 h-10 rounded-lg bg-[#FF792A] text-white hover:shadow-md hover:bg-[#FF792A]/90 transition-all"
             >
               {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
                 <>
-                  <PlaneTakeoff className="w-4 h-4 mr-1" />
+                  <PlaneTakeoff className="w-4 h-4 mr-1 text-white" />
                   Create Trip
                 </>
               )}
