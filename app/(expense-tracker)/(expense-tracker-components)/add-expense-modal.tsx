@@ -132,9 +132,9 @@ export default function AddExpenseModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#FFE5D1] bg-[#FFF9ED] shadow-lg">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#FFE5D1] bg-[white] shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold bg-amber-600 text-gray-900">
+          <DialogTitle className="text-lg font-semibold  text-gray-900">
             Add Expense
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600">
