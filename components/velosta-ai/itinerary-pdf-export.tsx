@@ -679,7 +679,7 @@ export function ItineraryPDFExport({
   return (
     <Button
       onClick={generatePDF}
-      className="bg-[#DA880F] hover:bg-[#c9770b] text-white gap-2"
+      className="bg-[#E56A20] hover:bg-[white] text-white hover:text-black hover:border border-[#E56A20] gap-2 hover:cursor-pointer"
       disabled={!itineraryData}
     >
       <Download size={18} />
