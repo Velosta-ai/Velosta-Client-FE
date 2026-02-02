@@ -40,7 +40,7 @@ function BrandMark() {
 const navLinks = [
   { href: "/velosta-ai", label: "Velosta AI" },
   { href: "/travel-blogs", label: "HowNotToTravel" },
-  // { href: "/", label: "App Download" },
+  { href: "/services", label: "Services" },
 ];
 type NavbarProps = {
   className?: string;
