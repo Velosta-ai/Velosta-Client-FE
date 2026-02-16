@@ -1,203 +1,385 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import { ServiceCategoryGrid } from "@/components/services/service-category-grid";
-import { getLocations, getVendors, Location, Vendor } from "@/lib/services-api";
+import { getCategories, ServiceCategory, Location } from "@/lib/services-api";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, ArrowRight, ArrowUpRight, Star, Phone } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { 
+  MapPin, ArrowRight, ShieldCheck, 
+  MessageSquare, Search, Sparkles, Star, Check, ChevronDown
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LocationSelectorModal } from "@/components/services/location-selector-modal";
 
-// Hero Section - Editorial style
+// Flaticon icon IDs for each category
+const CATEGORY_ICONS: Record<string, number> = {
+  "cabs": 3097180,
+  "taxi": 3097180,
+  "bike": 14996363,
+  "homestay": 2544087,
+  "hotel": 2933921,
+  "hostel": 648539,
+  "activit": 8863868,
+  "adventure": 8863868,
+  "guide": 13561110,
+  "restaurant": 4223218,
+  "food": 4223218,
+  "dining": 4223218,
+  "spa": 5731912,
+  "wellness": 5731912,
+  "photo": 5848744,
+  "water": 2264825,
+  "trek": 5064158,
+  "hik": 5064158,
+  "camp": 5064158,
+  "package": 13208908,
+  "tour": 13208908,
+  "boat": 2972461,
+  "stay": 2933953,
+  "resort": 2933953,
+};
+
+const DEFAULT_ICON_ID = 3135715;
+
+// Helper to get icon URL from Flaticon CDN
+function getCategoryIconUrl(slug: string): string {
+  const normalizedSlug = slug.toLowerCase();
+  
+  // Find matching icon by checking if slug contains any key
+  for (const [key, iconId] of Object.entries(CATEGORY_ICONS)) {
+    if (normalizedSlug.includes(key)) {
+      const folder = Math.floor(iconId / 1000);
+      return `https://cdn-icons-png.flaticon.com/512/${folder}/${iconId}.png`;
+    }
+  }
+  
+  // Return default icon
+  const folder = Math.floor(DEFAULT_ICON_ID / 1000);
+  return `https://cdn-icons-png.flaticon.com/512/${folder}/${DEFAULT_ICON_ID}.png`;
+}
+
+// Hero Section with Search Bar
 function HeroSection() {
+  const router = useRouter();
+  const searchBarRef = useRef<HTMLDivElement>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const data = await getCategories();
+      const filtered = data.filter((cat) => !HIDDEN_CATEGORIES.includes(cat.slug));
+      setCategories(filtered);
+    }
+    fetchCategories();
+  }, []);
+
+  const handleSearch = () => {
+    if (!selectedLocation) {
+      // If no location selected, open the location modal
+      setLocationModalOpen(true);
+      return;
+    }
+    
+    // Build the URL with location and optional category
+    let url = `/services/${selectedLocation.slug}`;
+    if (selectedCategory) {
+      url += `?category=${selectedCategory}`;
+    }
+    router.push(url);
+  };
 
   return (
     <>
-      <section className="relative pt-24 pb-20 overflow-hidden">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] bg-[size:24px_24px]" />
+      <section className="relative pt-32 pb-16 overflow-hidden bg-white">
+        {/* Decorative elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-100/50 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-10 w-96 h-96 bg-amber-50/50 rounded-full blur-3xl" />
         
-        <div className="relative mx-auto max-w-7xl px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left - Content */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <span className="inline-block px-4 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-full mb-6">
-                Trusted by 10,000+ travelers
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mt-30"
+          >
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-neutral-900 tracking-tight mb-6">
+              Discover trusted{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">
+                local services
               </span>
+            </h1>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-neutral-900 leading-[1.1] tracking-tight mb-6">
-                Discover
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#f97316] to-[#ea580c]">
-                  Local Services
-                </span>
-              </h1>
+            <p className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto mb-10">
+              Connect directly with verified vendors for hotels, rentals, adventures, and more. No hidden fees.
+            </p>
 
-              <p className="text-xl text-neutral-600 leading-relaxed mb-10 max-w-lg">
-                From taxi rides to homestays, connect directly with verified local vendors. 
-                No middlemen, no hidden fees.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="max-w-2xl mx-auto relative"
+            >
+              <div 
+                ref={searchBarRef}
+                className="bg-white rounded-full shadow-xl shadow-neutral-200/60 border border-neutral-100 p-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+              >
+                {/* Location Input */}
                 <button
                   onClick={() => setLocationModalOpen(true)}
-                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-colors"
+                  className="flex-1 flex items-center gap-3 px-5 py-3 rounded-full hover:bg-neutral-50 transition-colors text-left"
                 >
-                  <MapPin className="w-5 h-5" />
-                  Choose Destination
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <MapPin className="w-5 h-5 text-orange-500 shrink-0" />
+                  <div>
+                    <p className="text-xs text-neutral-500 font-medium">Location</p>
+                    <p className={`text-sm ${selectedLocation ? "text-neutral-900 font-medium" : "text-neutral-700"}`}>
+                      {selectedLocation ? selectedLocation.name : "Where are you going?"}
+                    </p>
+                  </div>
                 </button>
-                <a
-                  href="#explore"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-neutral-200 text-neutral-700 rounded-full font-medium hover:border-neutral-900 hover:bg-neutral-900 hover:text-white transition-all"
+
+                <div className="hidden sm:block w-px h-10 bg-neutral-200" />
+
+                {/* Service Type */}
+                <button
+                  onClick={() => setCategoryModalOpen(!categoryModalOpen)}
+                  className={`flex-1 flex items-center gap-3 px-5 py-3 rounded-full hover:bg-neutral-50 transition-colors text-left ${categoryModalOpen ? "bg-neutral-50" : ""}`}
                 >
-                  Browse Services
-                </a>
+                  {selectedCategory ? (
+                    <Image
+                      src={getCategoryIconUrl(selectedCategory)}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="shrink-0 object-contain"
+                      unoptimized
+                    />
+                  ) : (
+                    <Sparkles className="w-5 h-5 text-orange-500 shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-xs text-neutral-500 font-medium">Service</p>
+                    <p className={`text-sm ${selectedCategory ? "text-neutral-900 font-medium" : "text-neutral-700"}`}>
+                      {selectedCategory 
+                        ? categories.find(c => c.slug === selectedCategory)?.name 
+                        : "All services"}
+                    </p>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${categoryModalOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Search Button */}
+                <Button
+                  onClick={handleSearch}
+                  className="h-12 px-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold shadow-lg shadow-orange-500/25"
+                >
+                  <Search className="w-5 h-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Search</span>
+                </Button>
               </div>
 
-              {/* Stats */}
-              <div className="flex items-center gap-8 mt-12 pt-12 border-t border-neutral-100">
-                <div>
-                  <div className="text-3xl font-bold text-neutral-900">200+</div>
-                  <div className="text-sm text-neutral-500">Verified Vendors</div>
-                </div>
-                <div className="h-12 w-px bg-neutral-200" />
-                <div>
-                  <div className="text-3xl font-bold text-neutral-900">15+</div>
-                  <div className="text-sm text-neutral-500">Service Types</div>
-                </div>
-                <div className="h-12 w-px bg-neutral-200" />
-                <div>
-                  <div className="flex items-center gap-1 text-3xl font-bold text-neutral-900">
-                    4.8 <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  </div>
-                  <div className="text-sm text-neutral-500">Avg Rating</div>
-                </div>
-              </div>
+              {/* Category Dropdown */}
+              <CategoryDropdown
+                isOpen={categoryModalOpen}
+                onClose={() => setCategoryModalOpen(false)}
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                anchorRef={searchBarRef}
+              />
             </motion.div>
 
-            {/* Right - Image Collage */}
+            {/* Trust Badges */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative hidden lg:block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 mt-10"
             >
-              <div className="relative">
-                {/* Main image */}
-                <div className="relative aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
-                  <Image
-                    src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"
-                    alt="Travel"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                </div>
-                
-                {/* Floating card 1 */}
-                <div className="absolute -left-8 top-1/4 bg-white rounded-2xl shadow-xl p-4 max-w-[200px]">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-neutral-900">WhatsApp Direct</div>
-                      <div className="text-xs text-neutral-500">No middlemen</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating card 2 */}
-                <div className="absolute -right-4 bottom-1/4 bg-white rounded-2xl shadow-xl p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="flex -space-x-2">
-                      {[1,2,3].map(i => (
-                        <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-400 border-2 border-white" />
-                      ))}
-                    </div>
-                    <span className="text-sm font-medium text-neutral-600">+10k</span>
-                  </div>
-                  <div className="text-xs text-neutral-500">Happy travelers</div>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <ShieldCheck className="w-5 h-5 text-green-500" />
+                <span>100% Verified Vendors</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span>4.8 Average Rating</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <MessageSquare className="w-5 h-5 text-blue-500" />
+                <span>Direct Chat Support</span>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       <LocationSelectorModal 
         open={locationModalOpen} 
-        onOpenChange={setLocationModalOpen} 
+        onOpenChange={setLocationModalOpen}
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
       />
     </>
   );
 }
 
-// Services/Categories Section
-function ServicesSection() {
-  return (
-    <section id="explore" className="py-20 bg-neutral-50">
-      <div className="mx-auto max-w-7xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12"
-        >
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <div>
-              <span className="text-sm font-medium text-orange-600 tracking-wider uppercase">
-                Our Services
-              </span>
-              <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mt-2">
-                What do you need?
-              </h2>
-            </div>
-            <p className="text-neutral-600 max-w-md">
-              Browse through our curated list of travel services. All vendors are verified for quality.
-            </p>
-          </div>
-        </motion.div>
+// Category Dropdown Component
+function CategoryDropdown({
+  isOpen,
+  onClose,
+  categories,
+  selectedCategory,
+  onSelectCategory,
+  anchorRef,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  categories: ServiceCategory[];
+  selectedCategory: string | null;
+  onSelectCategory: (slug: string | null) => void;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
-        <ServiceCategoryGrid />
+  useEffect(() => {
+    if (isOpen && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2,
+      });
+    }
+  }, [isOpen, anchorRef]);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop - fixed to cover entire screen */}
+      <div 
+        className="fixed inset-0"
+        style={{ zIndex: 9998 }}
+        onClick={onClose}
+      />
+      
+      {/* Dropdown - Fixed position */}
+      <div 
+        className="fixed w-72 bg-white rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden -translate-x-1/2"
+        style={{ 
+          zIndex: 9999, 
+          top: position.top,
+          left: position.left,
+        }}
+      >
+        {/* Scrollable list */}
+        <div className="max-h-72 overflow-y-auto">
+          {/* All Services Option */}
+          <button
+            onClick={() => {
+              onSelectCategory(null);
+              onClose();
+            }}
+            className={`w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-neutral-50 transition-colors ${
+              selectedCategory === null ? "bg-orange-50/50" : ""
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-orange-500" />
+              </div>
+              <span className={`text-sm ${selectedCategory === null ? "text-neutral-900 font-medium" : "text-neutral-700"}`}>
+                All Services
+              </span>
+            </div>
+            {selectedCategory === null && (
+              <Check className="w-5 h-5 text-orange-500" />
+            )}
+          </button>
+          
+          {/* Divider */}
+          <div className="h-px bg-neutral-100 mx-4" />
+          
+          {/* Category List */}
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => {
+                onSelectCategory(category.slug);
+                onClose();
+              }}
+              className={`w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-neutral-50 transition-colors ${
+                selectedCategory === category.slug ? "bg-orange-50/50" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <Image
+                    src={getCategoryIconUrl(category.slug)}
+                    alt={category.name}
+                    width={22}
+                    height={22}
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+                <span className={`text-sm ${selectedCategory === category.slug ? "text-neutral-900 font-medium" : "text-neutral-700"}`}>
+                  {category.name}
+                </span>
+              </div>
+              {selectedCategory === category.slug && (
+                <Check className="w-5 h-5 text-orange-500" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
-    </section>
+    </>
   );
 }
 
-// Featured Vendors
-function FeaturedSection() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+// Categories to hide from the grid
+const HIDDEN_CATEGORIES = [
+  "equipment-rentals", 
+  "equipment-rental",
+  "local-transport", 
+  "transport",
+  "rentals",
+];
+
+// Browse by Category Section with Illustrated Icons
+function CategoriesSection() {
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchVendors() {
-      const data = await getVendors({ featured: true, limit: 4 });
-      setVendors(data.vendors);
+    async function fetchCategories() {
+      const data = await getCategories();
+      // Filter out hidden categories
+      const filteredCategories = data.filter(
+        (cat) => !HIDDEN_CATEGORIES.includes(cat.slug)
+      );
+      setCategories(filteredCategories);
       setLoading(false);
     }
-    fetchVendors();
+    fetchCategories();
   }, []);
 
   if (loading) {
     return (
-      <section className="py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="h-8 w-48 bg-neutral-100 rounded animate-pulse mb-10" />
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-neutral-100 animate-pulse" />
+      <section className="py-16 bg-white">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="h-8 w-48 bg-neutral-200 rounded animate-pulse mb-10" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-36 rounded-2xl bg-neutral-200 animate-pulse" />
             ))}
           </div>
         </div>
@@ -205,187 +387,64 @@ function FeaturedSection() {
     );
   }
 
-  if (vendors.length === 0) return null;
-
-  const priceLabels: Record<string, string> = {
-    BUDGET: "₹", MODERATE: "₹₹", PREMIUM: "₹₹₹", LUXURY: "₹₹₹₹",
-  };
-
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-7xl px-6">
+    <section className="py-16 overflow-hidden bg-white">
+      <div className="mx-auto max-w-6xl px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex items-end justify-between mb-12"
+          className="flex items-end justify-between mb-10"
         >
           <div>
-            <span className="text-sm font-medium text-orange-600 tracking-wider uppercase">
-              Top Rated
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mt-2">
-              Featured Services
+            <h2 className="text-2xl md:text-3xl font-bold text-neutral-900">
+              Browse by category
             </h2>
           </div>
           <Link 
-            href="/services/all"
-            className="hidden md:flex items-center gap-2 text-neutral-600 hover:text-neutral-900 font-medium transition-colors"
+            href="/services/categories"
+            className="hidden md:flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors"
           >
-            View All <ArrowRight className="w-4 h-4" />
+            View all categories <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {vendors.map((vendor, index) => (
-            <motion.div
-              key={vendor.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Link href={`/services/vendor/${vendor.slug}`} className="group block">
-                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden mb-4">
-                  <Image
-                    src={vendor.coverImage || "/icons/placeholder.jpg"}
-                    alt={vendor.name}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  {/* Top badges */}
-                  <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
-                    {vendor.isVerified && (
-                      <span className="px-3 py-1 bg-white rounded-full text-xs font-medium text-green-700 shadow-sm">
-                        Verified
-                      </span>
-                    )}
-                    <span className="ml-auto px-3 py-1 bg-white/90 backdrop-blur rounded-full text-xs font-semibold shadow-sm flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      {vendor.rating.toFixed(1)}
-                    </span>
-                  </div>
-
-                  {/* Bottom info */}
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs text-white font-medium mb-2">
-                      {vendor.category.name}
-                    </span>
-                    <h3 className="text-lg font-semibold text-white leading-tight">
-                      {vendor.name}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-sm text-neutral-500">
-                    <MapPin className="w-4 h-4" />
-                    {vendor.location.name}
-                  </div>
-                  <span className="text-sm font-semibold text-orange-600">
-                    {priceLabels[vendor.priceRange]}
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Mobile view all */}
-        <div className="md:hidden text-center mt-8">
-          <Link 
-            href="/services/all"
-            className="inline-flex items-center gap-2 px-6 py-3 border-2 border-neutral-200 rounded-full font-medium hover:bg-neutral-900 hover:text-white hover:border-neutral-900 transition-all"
-          >
-            View All Services <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// Destinations Section - Bento style
-function DestinationsSection() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchLocations() {
-      const data = await getLocations();
-      setLocations(data);
-      setLoading(false);
-    }
-    fetchLocations();
-  }, []);
-
-  if (loading || locations.length === 0) return null;
-
-  // Take first 5 locations for bento layout
-  const displayLocations = locations.slice(0, 5);
-
-  return (
-    <section className="py-20 bg-neutral-900">
-      <div className="mx-auto max-w-7xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <span className="text-sm font-medium text-orange-400 tracking-wider uppercase">
-            Explore
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mt-2">
-            Popular Destinations
-          </h2>
-        </motion.div>
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:grid-rows-2">
-          {displayLocations.map((location, index) => {
-            // First item spans 2 columns and 2 rows on desktop
-            const isLarge = index === 0;
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {categories.slice(0, 6).map((category, index) => {
+            const iconUrl = getCategoryIconUrl(category.slug);
             
             return (
               <motion.div
-                key={location.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                key={category.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className={isLarge ? "md:col-span-2 md:row-span-2" : ""}
+                transition={{ delay: index * 0.05 }}
               >
                 <Link
-                  href={`/services/${location.slug}`}
-                  className={`group block relative overflow-hidden rounded-2xl ${
-                    isLarge ? "aspect-square md:aspect-auto md:h-full" : "aspect-[4/3]"
-                  }`}
+                  href={`/services?category=${category.slug}`}
+                  className="group block"
                 >
-                  <Image
-                    src={location.image || "/icons/placeholder.jpg"}
-                    alt={location.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  
-                  <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                    <div>
-                      <h3 className={`font-bold text-white ${isLarge ? "text-3xl md:text-4xl" : "text-xl"}`}>
-                        {location.name}
-                      </h3>
-                      <p className="text-white/70 text-sm mt-1">
-                        {location.vendorCount} services available
-                      </p>
+                  <div className="relative bg-white border border-neutral-200 rounded-2xl p-5 h-40 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:border-orange-300 hover:shadow-lg hover:shadow-orange-100/50 hover:-translate-y-1">
+                    {/* Flaticon Premium Icon */}
+                    <div className="relative w-14 h-14 transition-transform duration-300 group-hover:scale-110">
+                      <Image
+                        src={iconUrl}
+                        alt={category.name}
+                        fill
+                        className="object-contain"
+                        unoptimized
+                      />
                     </div>
-                    <div className="mt-4 flex items-center gap-2">
-                      <span className="text-white/80 text-sm group-hover:text-white transition-colors">
-                        Explore
-                      </span>
-                      <ArrowUpRight className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    
+                    {/* Name */}
+                    <div className="text-center">
+                      <h3 className="font-semibold text-neutral-800 text-sm group-hover:text-orange-600 transition-colors leading-tight">
+                        {category.name}
+                      </h3>
+                      <p className="text-xs text-neutral-400 mt-1">
+                        {category.vendorCount}+ listings
+                      </p>
                     </div>
                   </div>
                 </Link>
@@ -394,128 +453,213 @@ function DestinationsSection() {
           })}
         </div>
 
-        {locations.length > 5 && (
-          <div className="text-center mt-10">
-            <Link 
-              href="/services/locations"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-neutral-900 rounded-full font-medium hover:bg-neutral-100 transition-colors"
-            >
-              View All Destinations <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// How It Works - Minimal
-function HowItWorksSection() {
-  const steps = [
-    {
-      number: "01",
-      title: "Pick a destination",
-      description: "Choose from our list of popular travel spots across India.",
-    },
-    {
-      number: "02",
-      title: "Browse services",
-      description: "Explore verified vendors for transport, stays, activities & more.",
-    },
-    {
-      number: "03",
-      title: "Connect directly",
-      description: "Contact vendors via WhatsApp or phone. No booking fees.",
-    },
-  ];
-
-  return (
-    <section className="py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <span className="text-sm font-medium text-orange-600 tracking-wider uppercase">
-            Simple Process
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mt-2">
-            How it works
-          </h2>
-        </motion.div>
-
-        <div className="grid md:grid-cols-3 gap-12 md:gap-8">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.15 }}
-              className="text-center"
-            >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-50 text-orange-600 text-2xl font-bold mb-6">
-                {step.number}
-              </div>
-              <h3 className="text-xl font-semibold text-neutral-900 mb-3">
-                {step.title}
-              </h3>
-              <p className="text-neutral-600 leading-relaxed">
-                {step.description}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// CTA Section
-function CTASection() {
-  const [locationModalOpen, setLocationModalOpen] = useState(false);
-
-  return (
-    <>
-      <section className="py-20 bg-gradient-to-br from-orange-500 to-orange-600">
-        <div className="mx-auto max-w-4xl px-6 text-center">
+        {/* Show more categories */}
+        {categories.length > 6 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            className="mt-8"
           >
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-              Ready to explore?
-            </h2>
-            <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-              Start discovering amazing local services at your favorite destinations.
-            </p>
-            <button
-              onClick={() => setLocationModalOpen(true)}
-              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-orange-600 rounded-full font-semibold hover:bg-neutral-100 transition-colors shadow-xl"
-            >
-              <MapPin className="w-5 h-5" />
-              Choose Your Destination
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {categories.slice(6, 12).map((category, index) => {
+                const iconUrl = getCategoryIconUrl(category.slug);
+                
+                return (
+                  <motion.div
+                    key={category.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link
+                      href={`/services?category=${category.slug}`}
+                      className="group block"
+                    >
+                      <div className="relative bg-white border border-neutral-200 rounded-2xl p-5 h-40 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:border-orange-300 hover:shadow-lg hover:shadow-orange-100/50 hover:-translate-y-1">
+                        <div className="relative w-14 h-14 transition-transform duration-300 group-hover:scale-110">
+                          <Image
+                            src={iconUrl}
+                            alt={category.name}
+                            fill
+                            className="object-contain"
+                            unoptimized
+                          />
+                        </div>
+                        <div className="text-center">
+                          <h3 className="font-semibold text-neutral-800 text-sm group-hover:text-orange-600 transition-colors leading-tight">
+                            {category.name}
+                          </h3>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            {category.vendorCount}+ listings
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
           </motion.div>
-        </div>
-      </section>
+        )}
 
-      <LocationSelectorModal 
-        open={locationModalOpen} 
-        onOpenChange={setLocationModalOpen} 
-      />
-    </>
+        {/* Mobile view all */}
+        <div className="md:hidden text-center mt-8">
+          <Link 
+            href="/services/categories"
+            className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium text-sm"
+          >
+            View all categories <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
-// Loading state
-function HeroSkeleton() {
+// Velosta AI CTA Section - Minimal & Impactful
+function VelostaAICTASection() {
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
+    <section className="py-16 bg-white">
+      <div className="mx-auto max-w-5xl px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <Link
+            href="/velosta-ai"
+            className="group relative block rounded-3xl overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 p-8 md:p-12 hover:shadow-2xl transition-shadow duration-300"
+          >
+            {/* Decorative glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-500/30 to-transparent rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-500/20 to-transparent rounded-full blur-3xl" />
+            
+            <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+              {/* Left - Content */}
+              <div className="text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/20 border border-orange-500/30 mb-4">
+                  <Sparkles className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-medium text-orange-300">AI-Powered</span>
+                </div>
+                
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  Not sure where to go?
+                </h2>
+                <p className="text-neutral-400 text-lg">
+                  Tell us your budget. We&apos;ll find your perfect trip.
+                </p>
+              </div>
+              
+              {/* Right - CTA */}
+              <div className="flex items-center gap-4 px-6 py-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-white font-semibold shadow-lg shadow-orange-500/25 group-hover:shadow-xl group-hover:shadow-orange-500/40 transition-all duration-300 group-hover:scale-105">
+                <Sparkles className="w-5 h-5" />
+                <span>Plan with AI</span>
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// Why Velosta Banner Section
+function WhyVelostaSection() {
+  const highlights = [
+    { icon: <ShieldCheck className="w-5 h-5" />, text: "Verified Vendors" },
+    { icon: <MessageSquare className="w-5 h-5" />, text: "Direct WhatsApp Chat" },
+    { icon: <Star className="w-5 h-5" />, text: "Zero Platform Fees" },
+    { icon: <MapPin className="w-5 h-5" />, text: "Local Expertise" },
+  ];
+
+  return (
+    <section className="relative py-12 overflow-hidden">
+      {/* Banner background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900" />
+      
+      {/* Decorative gradient accents */}
+      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-orange-500/20 to-transparent" />
+      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-500/20 to-transparent" />
+      
+      {/* Animated shine effect */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -inset-full top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 animate-[shimmer_3s_infinite]" />
+      </div>
+
+      <div className="relative mx-auto max-w-6xl px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-col lg:flex-row items-center justify-between gap-8"
+        >
+          {/* Left - Headline */}
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">
+              Why travelers love{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">
+                Velosta
+              </span>
+            </h2>
+          </div>
+
+          {/* Right - Highlights */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-3 md:gap-6">
+            {highlights.map((item, index) => (
+              <motion.div
+                key={item.text}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10"
+              >
+                <span className="text-orange-400">{item.icon}</span>
+                <span className="text-white text-sm font-medium whitespace-nowrap">{item.text}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center justify-center gap-8 md:gap-12 mt-8 pt-6 border-t border-white/10"
+        >
+          {[
+            { value: "200+", label: "Vendors" },
+            { value: "15+", label: "Destinations" },
+            { value: "10K+", label: "Travelers" },
+            { value: "4.8★", label: "Rating" },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 + index * 0.05 }}
+              className="text-center"
+            >
+              <div className="text-xl md:text-2xl font-bold text-white">{stat.value}</div>
+              <div className="text-xs text-neutral-400">{stat.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// Loading skeleton
+function PageSkeleton() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
       <div className="animate-pulse text-neutral-400">Loading...</div>
     </div>
   );
@@ -526,19 +670,15 @@ export default function ServicesPage() {
     <main className="flex flex-col min-h-screen bg-white">
       <Navbar />
       
-      <Suspense fallback={<HeroSkeleton />}>
+      <Suspense fallback={<PageSkeleton />}>
         <HeroSection />
       </Suspense>
       
-      <ServicesSection />
+      <CategoriesSection />
       
-      <FeaturedSection />
+      <VelostaAICTASection />
       
-      <DestinationsSection />
-      
-      <HowItWorksSection />
-      
-      <CTASection />
+      <WhyVelostaSection />
       
       <Footer />
     </main>
