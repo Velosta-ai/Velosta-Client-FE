@@ -32,6 +32,7 @@ export default function GoogleOneTapLogin({ onLogin }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ credential: response.credential }),
     });
+    console.log("Here");
 
     const data = await res.json();
     if (data.accessToken) {

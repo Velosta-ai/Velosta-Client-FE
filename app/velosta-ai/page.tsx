@@ -10,9 +10,10 @@ function PlanPage() {
     <ProtectedRoute>
       <Navbar className="" />
 
-      <main className="min-h-screen w-full">
+      <main className="min-h-screen w-full pt-24">
         <VelostaBotInterface />
       </main>
+      <Footer />
     </ProtectedRoute>
   );
 }
